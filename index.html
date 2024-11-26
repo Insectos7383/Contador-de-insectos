@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insect Counter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+
+        canvas {
+            border: 1px solid black;
+            margin-top: 20px;
+        }
+
+        button, input[type="file"], input[type="text"] {
+            margin: 10px;
+        }
+
+        .header {
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: green; /* Color verde para "Organika Pest Control" */
+        }
+
+        .header p {
+            margin: 5px 0 0;
+            font-size: 14px;
+            color: blue; /* Color azul para "Licencia # 7383" */
+        }
+
+        .header .subtext {
+            margin: 5px 0 0;
+            font-size: 14px;
+            color: orange; /* Color anaranjado para "Mar y Tierra" */
+        }
+    </style>
+    <!-- Vincula el manifest -->
+    <link rel="manifest" href="./manifest.json">
+    <!-- Registra el Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(function(registration) {
+                    console.log('Service Worker registrado con éxito:', registration);
+                })
+                .catch(function(error) {
+                    console.error('Error al registrar el Service Worker:', error);
+                });
+        }
+    </script>
+</head>
+<body>
+    <div class="header">
+        <h1>Organika Pest Control</h1>
+        <p>Licencia # 7383</p>
+        <p class="subtext">Mar y Tierra</p>
+    </div>
+
+    <h2>Insect Counter</h2>
+
+    <canvas id="imageCanvas"></canvas>
+    <div>
+        <input type="text" id="file-name" placeholder="Nombre del archivo" />
+        <button onclick="downloadCountData()">Descargar datos</button>
+        <span>Insectos contados: <span id="insect-count">0</span></span>
+    </div>
+    <div>
+        <input type="file" accept="image/*" onchange="handleImageUpload(event)">
+        <button onclick="resetInsectCount()">Reiniciar</button>
+    </div>
+
+    <script>
+        let insectCount = 0;
+        let canvas, ctx;
+        let image = null;
+        let redSpots = [];
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                image = new Image();
+                image.src = e.target.result;
+                image.onload = function () {
+                    processImage(image);
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function processImage(img) {
+            canvas = document.getElementById('imageCanvas');
+            ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            insectCount = 0;
+            redSpots = [];
+            document.getElementById('insect-count').textContent = insectCount;
+
+            enableManualCounting();
+        }
+
+        function enableManualCounting() {
+            canvas.removeEventListener('click', handleCanvasClick);
+            canvas.addEventListener('click', handleCanvasClick);
+        }
+
+        function handleCanvasClick(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            const radius = 15;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2, false);
+            ctx.fillStyle = 'red';
+            ctx.fill();
+
+            redSpots.push({ x, y, radius });
+
+            insectCount++;
+            document.getElementById('insect-count').textContent = insectCount;
+
+            ctx.fillStyle = 'black';
+            ctx.font = '16px Arial';
+            const textWidth = ctx.measureText(insectCount).width;
+            const textX = x - textWidth / 2;
+            const textY = y + 6;
+            ctx.fillText(insectCount, textX, textY);
+        }
+
+        function resetInsectCount() {
+            insectCount = 0;
+            document.getElementById('insect-count').textContent = insectCount;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (image) {
+                ctx.drawImage(image, 0, 0);
+            }
+
+            redSpots = [];
+        }
+
+        function downloadCountData() {
+            const count = document.getElementById('insect-count').textContent;
+
+            let fileName = document.getElementById('file-name').value.trim();
+            if (fileName === "") {
+                fileName = "insect_count";
+            }
+            fileName += ".txt";
+
+            const fileContent = `Insect Counter Results:\n\nCount: ${count}\nDate: ${new Date().toLocaleString()}`;
+
+            const blob = new Blob([fileContent], { type: 'text/plain' });
+
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+    </script>
+</body>
+</html>

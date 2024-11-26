@@ -1,0 +1,94 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f4f4f9;
+    flex-direction: column; /* Ajuste para pantallas pequeñas */
+}
+
+.container {
+    text-align: center;
+}
+
+.company-name {
+    font-size: 32px;  /* Tamaño del texto del nombre de la compañía */
+    color: #4caf50;   /* Color verde */
+    font-weight: bold;
+    margin-bottom: 5px;  /* Espacio debajo del nombre */
+}
+
+.license-number {
+    font-size: 18px;  /* Tamaño del texto de la licencia */
+    color: #333;  /* Color oscuro */
+    font-style: italic;  /* Estilo cursivo */
+    margin-bottom: 20px;  /* Espacio debajo del número */
+}
+
+h1 {
+    color: #333;
+}
+
+.image-upload input {
+    margin: 20px 0;
+}
+
+.counter-box {
+    background-color: #005cbf;
+    color: white;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 24px;
+    margin: 20px 0;
+}
+
+button {
+    background-color: #ff4747;
+    color: white;
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    margin: 10px;
+}
+
+button:hover {
+    background-color: #d63f3f;
+}
+
+canvas {
+    max-width: 100%; /* Asegura que el canvas no exceda el ancho de la pantalla */
+    height: auto; /* Mantiene la proporción del lienzo */
+    display: block; /* Elimina espacios extra alrededor del canvas */
+    margin: 0 auto; /* Centra el canvas horizontalmente */
+}
+
+/* Adaptación para pantallas pequeñas (como iPhone) */
+@media only screen and (max-width: 480px) {
+    body {
+        padding: 10px;
+    }
+
+    h1, .company-name, .license-number {
+        font-size: 20px; /* Reducir el tamaño del texto */
+    }
+
+    canvas {
+        width: 100%; /* Ajusta el canvas al ancho de la pantalla */
+        max-width: 320px; /* Máximo ancho para pantallas pequeñas */
+        height: auto; /* Mantener proporción */
+    }
+
+    button, input[type="file"], input[type="text"] {
+        font-size: 14px; /* Texto más pequeño */
+        padding: 8px 10px;
+    }
+
+    .counter-box {
+        font-size: 18px; /* Ajusta el texto dentro de los contadores */
+        padding: 8px;
+    }
+}
