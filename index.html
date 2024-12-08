@@ -27,24 +27,22 @@
         .header h1 {
             margin: 0;
             font-size: 24px;
-            color: green; /* Color verde para "Organika Pest Control" */
+            color: green;
         }
 
         .header p {
             margin: 5px 0 0;
             font-size: 14px;
-            color: blue; /* Color azul para "Licencia # 7383" */
+            color: blue;
         }
 
         .header .subtext {
             margin: 5px 0 0;
             font-size: 14px;
-            color: orange; /* Color anaranjado para "Mar y Tierra" */
+            color: orange;
         }
     </style>
-    <!-- Vincula el manifest -->
     <link rel="manifest" href="./manifest.json">
-    <!-- Registra el Service Worker -->
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js')
@@ -75,6 +73,9 @@
     <div>
         <input type="file" accept="image/*" onchange="handleImageUpload(event)">
         <button onclick="resetInsectCount()">Reiniciar</button>
+        <!-- Botones de controlar el contador -->
+        <button onclick="setMode('sum')">Sumar</button>
+        <button onclick="setMode('subtract')">Restar</button>
     </div>
 
     <script>
@@ -82,6 +83,7 @@
         let canvas, ctx;
         let image = null;
         let redSpots = [];
+        let countMode = 'sum'; // Modo por defecto: sumar
 
         function handleImageUpload(event) {
             const file = event.target.files[0];
@@ -123,22 +125,65 @@
             const y = event.clientY - rect.top;
 
             const radius = 15;
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, Math.PI * 2, false);
-            ctx.fillStyle = 'red';
-            ctx.fill();
 
-            redSpots.push({ x, y, radius });
+            if (countMode === 'sum') {
+                // Si estamos en modo "sumar", añadir un nuevo insecto
+                insectCount++; // Incrementar el contador de insectos
 
-            insectCount++;
+                // Guardamos la posición, el número y el círculo
+                redSpots.push({ x, y, radius, number: insectCount });
+
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2, false);
+                ctx.fillStyle = 'red';
+                ctx.fill();
+
+                // Dibujar el número del insecto sobre el círculo
+                ctx.fillStyle = 'black';
+                ctx.font = '16px Arial';
+                const textWidth = ctx.measureText(insectCount).width;
+                const textX = x - textWidth / 2;
+                const textY = y + 6;
+                ctx.fillText(insectCount, textX, textY);
+            } else if (countMode === 'subtract' && redSpots.length > 0) {
+                // Si estamos en modo "restar", eliminar el último insecto
+                redSpots.pop(); // Eliminar el último insecto contado
+
+                insectCount--;
+
+                // Redibujar la imagen y los insectos restantes
+                redrawCanvas();
+            }
+
             document.getElementById('insect-count').textContent = insectCount;
+        }
 
-            ctx.fillStyle = 'black';
-            ctx.font = '16px Arial';
-            const textWidth = ctx.measureText(insectCount).width;
-            const textX = x - textWidth / 2;
-            const textY = y + 6;
-            ctx.fillText(insectCount, textX, textY);
+        // Función para redibujar el lienzo con los insectos restantes
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (image) {
+                ctx.drawImage(image, 0, 0);
+            }
+
+            redSpots.forEach((spot) => {
+                ctx.beginPath();
+                ctx.arc(spot.x, spot.y, spot.radius, 0, Math.PI * 2, false);
+                ctx.fillStyle = 'red';
+                ctx.fill();
+
+                // Dibujar el número del insecto sobre el círculo
+                ctx.fillStyle = 'black';
+                ctx.font = '16px Arial';
+                const textWidth = ctx.measureText(spot.number).width;
+                const textX = spot.x - textWidth / 2;
+                const textY = spot.y + 6;
+                ctx.fillText(spot.number, textX, textY);
+            });
+        }
+
+        function setMode(mode) {
+            countMode = mode;
+            alert("Modo activado: " + (mode === 'sum' ? "Sumar" : "Restar"));
         }
 
         function resetInsectCount() {
