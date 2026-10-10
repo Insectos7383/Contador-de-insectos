@@ -1,4 +1,78 @@
-// Función principal con exclusión de la zona del letrero y filtros estrictos
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contador de Insectos - Versión 2.0 Meticulosa</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f6f7;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        /* Forzar que la imagen no sea gigante y se ajuste a la pantalla */
+        #canvas-insectos {
+            width: 100% !important;
+            height: auto !important;
+            max-height: 700px;
+            object-fit: contain;
+            border: 2px solid #ccc;
+            background: #000;
+            display: block;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Contador de Insectos Ver 2.0 🪲</h1>
+        <p>Sube tu foto de la trampa para realizar un conteo ultra meticuloso por categorías.</p>
+        
+        <input type="file" id="subir-imagen" accept="image/*">
+        <br>
+        
+        <canvas id="canvas-insectos"></canvas>
+        
+        <div id="resumen-conteo"></div>
+    </div>
+
+    <script src="script2.js"></script>
+    <script>
+        document.getElementById('subir-imagen').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        procesarImagenConResumen('canvas-insectos', img);
+                    }
+                    img.src = event.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>
+Haz clic en "Commit changes".
+
+Paso 2: Actualizar script2.js para un conteo preciso y sin dejar moscas fuera
+Entra a tu archivo script2.js en GitHub y haz clic en el lápiz para editarlo.
+
+Borra todo lo anterior y pega este código equilibrado:
+
+JavaScript
+// Función principal optimizada para conteo preciso de moscas sin omitir zonas
 function procesarImagenConResumen(canvasId, imgElement) {
     const canvas = document.getElementById(canvasId);
     const ctx = canvas.getContext('2d');
@@ -19,20 +93,8 @@ function procesarImagenConResumen(canvasId, imgElement) {
     const height = canvas.height;
     const visited = new Uint8Array(width * height);
 
-    // Definir la zona vertical donde está el letrero negro (aproximadamente entre el 30% y el 60% de la altura de la imagen)
-    const letreroTop = height * 0.30;
-    const letreroBottom = height * 0.60;
-    const letreroLeft = width * 0.30;
-    const letreroRight = width * 0.75;
-
-    for (let y = 5; y < height - 5; y += 2) {
-        for (let x = 5; x < width - 5; x += 2) {
-            
-            // Si el punto cae dentro de la caja del letrero, nos saltamos el análisis para evitar contar letras
-            if (y > letreroTop && y < letreroBottom && x > letreroLeft && x < letreroRight) {
-                continue;
-            }
-
+    for (let y = 3; y < height - 3; y += 2) {
+        for (let x = 3; x < width - 3; x += 2) {
             const idx = (y * width + x);
             if (visited[idx]) continue;
 
@@ -41,8 +103,8 @@ function procesarImagenConResumen(canvasId, imgElement) {
             const g = pixels[pIdx + 1];
             const b = pixels[pIdx + 2];
 
-            const esOscuro = (r < 60 && g < 60 && b < 60 && (g - r) < 15);
-            const esClaro = (r > 180 && g > 180 && b > 160 && Math.abs(r - g) < 15);
+            const esOscuro = (r < 75 && g < 75 && b < 75 && (g - r) < 18);
+            const esClaro = (r > 170 && g > 170 && b > 150 && Math.abs(r - g) < 20);
 
             if (esClaro || esOscuro) {
                 let areaSize = 0;
@@ -66,11 +128,6 @@ function procesarImagenConResumen(canvasId, imgElement) {
 
                     for (let [vx, vy] of vecinos) {
                         if (vx >= 0 && vx < width && vy >= 0 && vy < height) {
-                            // Evitar expansión dentro de la zona del letrero también
-                            if (vy > letreroTop && vy < letreroBottom && vx > letreroLeft && vx < letreroRight) {
-                                continue;
-                            }
-
                             const vIdx = (vy * width + vx);
                             if (!visited[vIdx]) {
                                 const vpIdx = vIdx * 4;
@@ -78,8 +135,8 @@ function procesarImagenConResumen(canvasId, imgElement) {
                                 const vg = pixels[vpIdx + 1];
                                 const vb = pixels[vpIdx + 2];
 
-                                const matchClaro = esClaro && (vr > 160 && vg > 160 && vb > 140);
-                                const matchOscuro = esOscuro && (vr < 70 && vg < 70 && vb < 70);
+                                const matchClaro = esClaro && (vr > 150 && vg > 150 && vb > 130);
+                                const matchOscuro = esOscuro && (vr < 85 && vg < 85 && vb < 85);
 
                                 if (matchClaro || matchOscuro) {
                                     visited[vIdx] = 1;
@@ -94,24 +151,24 @@ function procesarImagenConResumen(canvasId, imgElement) {
                 const altoObjeto = maxY - minY;
                 const relacionAspecto = Math.max(anchoObjeto, altoObjeto) / (Math.min(anchoObjeto, altoObjeto) || 1);
                 
-                // Descartar formas alargadas o líneas de texto
-                const esUnaLinea = relacionAspecto > 3.0 && areaSize > 30;
+                // Ignorar líneas exageradamente alargadas (letras o bordes rectos)
+                const esUnaLinea = relacionAspecto > 3.5 && areaSize > 40;
 
                 if (!esUnaLinea) {
                     const centroX = Math.floor((minX + maxX) / 2);
                     const centroY = Math.floor((minY + maxY) / 2);
 
                     if (esClaro) {
-                        if (areaSize >= 20 && areaSize < 80) {
+                        if (areaSize >= 15 && areaSize < 70) {
                             conteoFragmentosClaros++;
                             marcarPuntoConNumero(ctx, centroX, centroY, '#FFFF00', '');
-                        } else if (areaSize >= 80 && areaSize < 600) {
+                        } else if (areaSize >= 70 && areaSize < 600) {
                             conteoPolillasBlancas++;
                             marcarPuntoConNumero(ctx, centroX, centroY, '#00FFFF', '');
                         }
                     } else if (esOscuro) {
-                        // Rango optimizado para cuerpos compactos de moscas
-                        if (areaSize >= 100 && areaSize < 600) {
+                        // Rango equilibrado para capturar todas las moscas reales sin fragmentarlas
+                        if (areaSize >= 40 && areaSize < 500) {
                             conteoMoscas++;
                             marcarPuntoWithNumber(ctx, centroX, centroY, '#FF0000', conteoMoscas);
                         }
@@ -142,7 +199,7 @@ function marcarPuntoWithNumber(ctx, x, y, color, numero) {
     if (numero) {
         ctx.font = 'bold 10px Arial';
         ctx.fillStyle = '#000000';
-        ctx.fillText(numero, x + 6, y + 4);
+        ctx.fillText(numero, x + 5, y + 4);
     }
 }
 
