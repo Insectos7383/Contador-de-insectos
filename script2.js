@@ -1,9 +1,8 @@
-// Función principal optimizada para procesar al instante sin congelar el navegador
+// Función principal para conteo detallado e individual por categoría exacta
 function procesarImagenConResumen(canvasId, imgElement) {
     const canvas = document.getElementById(canvasId);
     const ctx = canvas.getContext('2d');
     
-    // Limitar la resolución máxima de análisis para evitar que el navegador se congele
     let targetWidth = imgElement.naturalWidth || imgElement.width;
     let targetHeight = imgElement.naturalHeight || imgElement.height;
     const maxDim = 1000;
@@ -27,14 +26,16 @@ function procesarImagenConResumen(canvasId, imgElement) {
     const pixels = imgData.data;
     
     let conteoMoscas = 0;
-    let conteoPolillasBlancas = 0;
-    let conteoFragmentosClaros = 0;
+    let conteoPolillas = 0;
+    let conteoMariposasPequenas = 0;
+    let conteoFragmentosAlas = 0;
+    let conteoPuntosNegrosSueltos = 0;
 
     const visited = new Uint8Array(targetWidth * targetHeight);
-    const step = 3;
+    const step = 2;
 
-    for (let y = 5; y < targetHeight - 5; y += step) {
-        for (let x = 5; x < targetWidth - 5; x += step) {
+    for (let y = 3; y < targetHeight - 3; y += step) {
+        for (let x = 3; x < targetWidth - 3; x += step) {
             const idx = (y * targetWidth + x);
             if (visited[idx]) continue;
 
@@ -52,7 +53,6 @@ function procesarImagenConResumen(canvasId, imgElement) {
                 let queue = [[x, y]];
                 visited[idx] = 1;
 
-                // Cola optimizada para procesar al instante
                 let head = 0;
                 while (head < queue.length && queue.length < 1500) {
                     const [currX, currY] = queue[head++];
@@ -99,15 +99,21 @@ function procesarImagenConResumen(canvasId, imgElement) {
                     const centroY = Math.floor((minY + maxY) / 2);
 
                     if (esClaro) {
-                        if (areaSize >= 5 && areaSize < 30) {
-                            conteoFragmentosClaros++;
+                        if (areaSize >= 5 && areaSize < 25) {
+                            conteoFragmentosAlas++;
                             marcarPuntoConNumero(ctx, centroX, centroY, '#FFFF00', '');
-                        } else if (areaSize >= 30 && areaSize < 300) {
-                            conteoPolillasBlancas++;
+                        } else if (areaSize >= 25 && areaSize < 100) {
+                            conteoMariposasPequenas++;
+                            marcarPuntoConNumero(ctx, centroX, centroY, '#FFD700', '');
+                        } else if (areaSize >= 100) {
+                            conteoPolillas++;
                             marcarPuntoConNumero(ctx, centroX, centroY, '#00FFFF', '');
                         }
                     } else if (esOscuro) {
-                        if (areaSize >= 8 && areaSize < 250) {
+                        if (areaSize >= 6 && areaSize < 30) {
+                            conteoPuntosNegrosSueltos++;
+                            marcarPuntoConNumero(ctx, centroX, centroY, '#FFA500', '');
+                        } else if (areaSize >= 30 && areaSize < 450) {
                             conteoMoscas++;
                             marcarPuntoWithNumber(ctx, centroX, centroY, '#FF0000', conteoMoscas);
                         }
@@ -117,12 +123,15 @@ function procesarImagenConResumen(canvasId, imgElement) {
         }
     }
 
+    // Desglose individual y detallado en el resumen
     mostrarResumenDetallado({
-        "🪰 Moscas y Cuerpos Oscuros": conteoMoscas,
-        "🦋 Polillas y Mariposas Blancas": conteoPolillasBlancas,
-        "✨ Fragmentos y Alas Claras": conteoFragmentosClaros,
-        "📌 Total Elementos Claros Detectados": conteoPolillasBlancas + conteoFragmentosClaros,
-        "🔍 GRAN TOTAL DE ELEMENTOS DETECTADOS": conteoMoscas + conteoPolillasBlancas + conteoFragmentosClaros
+        "🪰 Moscas Principales (Cuerpo Completo)": conteoMoscas,
+        "🐜 Micro-residuos / Puntos Negros Oscuros": conteoPuntosNegrosSueltos,
+        "🦋 Polillas Grandes": conteoPolillas,
+        "🦋 Polillas Pequeñas / Mariposas": conteoMariposasPequenas,
+        "✨ Fragmentos y Alas Claras Sueltas": conteoFragmentosAlas,
+        "📌 TOTAL ELEMENTOS CLAROS Y FRAGMENTOS": conteoPolillas + conteoMariposasPequenas + conteoFragmentosAlas,
+        "🔍 GRAN TOTAL GENERAL DE DETECCIONES": conteoMoscas + conteoPuntosNegrosSueltos + conteoPolillas + conteoMariposasPequenas + conteoFragmentosAlas
     });
 }
 
@@ -164,16 +173,16 @@ function mostrarResumenDetallado(resumenData) {
             border: 2px solid #2c3e50;
             border-radius: 8px;
             font-family: Arial, sans-serif;
-            max-width: 450px;
+            max-width: 500px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         `;
         document.body.appendChild(contenedor);
     }
 
-    let htmlHTML = `<h3 style="margin-top:0; color:#2c3e50; border-bottom:1px solid #ccc; padding-bottom:5px;">📊 Resumen del Conteo Meticuloso</h3><ul style="list-style:none; padding:0;">`;
+    let htmlHTML = `<h3 style="margin-top:0; color:#2c3e50; border-bottom:1px solid #ccc; padding-bottom:5px;">📊 Resumen Meticuloso Individualizado</h3><ul style="list-style:none; padding:0;">`;
     
     for (const [especie, cantidad] of Object.entries(resumenData)) {
-        const esTotal = especie.includes("TOTAL");
+        const esTotal = especie.includes("TOTAL") || especie.includes("GRAN TOTAL");
         htmlHTML += `
             <li style="display:flex; justify-content:space-between; padding: 6px 0; border-bottom: 1px dashed #eee; ${esTotal ? 'font-weight:bold; color:#16a085; font-size:1.05em;' : ''}">
                 <span>${especie}:</span>
