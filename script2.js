@@ -1,4 +1,4 @@
-// Función principal que limita el análisis exclusivamente al papel amarillo de la trampa
+// Función principal con umbrales equilibrados para detectar insectos sobre la trampa
 function procesarImagenConResumen(canvasId, imgElement) {
     const canvas = document.getElementById(canvasId);
     const ctx = canvas.getContext('2d');
@@ -19,9 +19,8 @@ function procesarImagenConResumen(canvasId, imgElement) {
     const height = canvas.height;
     const visited = new Uint8Array(width * height);
 
-    // Recorremos la imagen buscando insectos
-    for (let y = 0; y < height; y += 3) {
-        for (let x = 0; x < width; x += 3) {
+    for (let y = 0; y < height; y += 2) {
+        for (let x = 0; x < width; x += 2) {
             const idx = (y * width + x);
             if (visited[idx]) continue;
 
@@ -30,18 +29,9 @@ function procesarImagenConResumen(canvasId, imgElement) {
             const g = pixels[pIdx + 1];
             const b = pixels[pIdx + 2];
 
-            // FILTRO CLAVE: Verificamos si este píxel está dentro del papel amarillo
-            // El papel amarillo se caracteriza por tener mucho rojo y verde, y menor cantidad de azul
-            const esPapelAmarillo = (r > 120 && g > 120 && b < 100);
-
-            // Si estamos fuera del papel amarillo (por ejemplo, en la madera o fondo gris), ignoramos
-            if (!esPapelAmarillo) {
-                continue;
-            }
-
-            // Identificar si es un insecto claro (polillas/alas) u oscuro (moscas) sobre el fondo amarillo
-            const esClaro = (r > 180 && g > 180 && b > 150); 
-            const esOscuro = (r < 60 && g < 60 && b < 60);   
+            // Umbrales directos de insectos (claros y oscuros)
+            const esClaro = (r > 150 && g > 150 && b > 130);
+            const esOscuro = (r < 80 && g < 80 && b < 80);
 
             if (esClaro || esOscuro) {
                 let areaSize = 0;
@@ -53,8 +43,8 @@ function procesarImagenConResumen(canvasId, imgElement) {
                     areaSize++;
 
                     const vecinos = [
-                        [currX + 3, currY], [currX - 3, currY],
-                        [currX, currY + 3], [currX, currY - 3]
+                        [currX + 2, currY], [currX - 2, currY],
+                        [currX, currY + 2], [currX, currY - 2]
                     ];
 
                     for (let [vx, vy] of vecinos) {
@@ -66,12 +56,8 @@ function procesarImagenConResumen(canvasId, imgElement) {
                                 const vg = pixels[vpIdx + 1];
                                 const vb = pixels[vpIdx + 2];
 
-                                // Asegurar que la expansión tampoco salga del área amarilla
-                                const vecinoEsAmarillo = (vr > 120 && vg > 120 && vb < 100);
-                                if (!vecinoEsAmarillo) continue;
-
-                                const matchClaro = esClaro && (vr > 170 && vg > 170 && vb > 140);
-                                const matchOscuro = esOscuro && (vr < 70 && vg < 70 && vb < 70);
+                                const matchClaro = esClaro && (vr > 140 && vg > 140 && vb > 120);
+                                const matchOscuro = esOscuro && (vr < 90 && vg < 90 && vb < 90);
 
                                 if (matchClaro || matchOscuro) {
                                     visited[vIdx] = 1;
@@ -83,15 +69,15 @@ function procesarImagenConResumen(canvasId, imgElement) {
                 }
 
                 if (esClaro) {
-                    if (areaSize >= 15 && areaSize < 60) {
+                    if (areaSize >= 10 && areaSize < 50) {
                         conteoFragmentosClaros++;
                         marcarPunto(ctx, x, y, '#FFFF00', conteoFragmentosClaros);
-                    } else if (areaSize >= 60) {
+                    } else if (areaSize >= 50) {
                         conteoPolillasBlancas++;
                         marcarPunto(ctx, x, y, '#00FFFF', conteoPolillasBlancas);
                     }
                 } else if (esOscuro) {
-                    if (areaSize >= 20 && areaSize < 250) {
+                    if (areaSize >= 15 && areaSize < 200) {
                         conteoMoscas++;
                         marcarPunto(ctx, x, y, '#FF0000', conteoMoscas);
                     }
