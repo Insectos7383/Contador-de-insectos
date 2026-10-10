@@ -1,4 +1,4 @@
-// Función principal con numeración progresiva y filtro ajustado para moscas
+// Función principal con umbrales estrictos para apuntar al objetivo de 129 moscas
 function procesarImagenConResumen(canvasId, imgElement) {
     const canvas = document.getElementById(canvasId);
     const ctx = canvas.getContext('2d');
@@ -29,10 +29,8 @@ function procesarImagenConResumen(canvasId, imgElement) {
             const g = pixels[pIdx + 1];
             const b = pixels[pIdx + 2];
 
-            // Detectar cuerpos oscuros (moscas)
-            const esOscuro = (r < 70 && g < 70 && b < 70 && (g - r) < 20);
-            // Detectar elementos claros (polillas/alas)
-            const esClaro = (r > 170 && g > 170 && b > 150 && Math.abs(r - g) < 20);
+            const esOscuro = (r < 60 && g < 60 && b < 60 && (g - r) < 15);
+            const esClaro = (r > 180 && g > 180 && b > 160 && Math.abs(r - g) < 15);
 
             if (esClaro || esOscuro) {
                 let areaSize = 0;
@@ -63,8 +61,8 @@ function procesarImagenConResumen(canvasId, imgElement) {
                                 const vg = pixels[vpIdx + 1];
                                 const vb = pixels[vpIdx + 2];
 
-                                const matchClaro = esClaro && (vr > 150 && vg > 150 && vb > 130);
-                                const matchOscuro = esOscuro && (vr < 80 && vg < 80 && vb < 80);
+                                const matchClaro = esClaro && (vr > 160 && vg > 160 && vb > 140);
+                                const matchOscuro = esOscuro && (vr < 70 && vg < 70 && vb < 70);
 
                                 if (matchClaro || matchOscuro) {
                                     visited[vIdx] = 1;
@@ -92,8 +90,8 @@ function procesarImagenConResumen(canvasId, imgElement) {
                             marcarPuntoConNumero(ctx, centroX, centroY, '#00FFFF', '');
                         }
                     } else if (esOscuro) {
-                        // Tamaño mínimo mayor para agrupar cada mosca entera y apuntar al objetivo de 129
-                        if (areaSize >= 70 && areaSize < 500) {
+                        // Umbral de tamaño elevado para capturar insectos completos y reducir ruido
+                        if (areaSize >= 130 && areaSize < 600) {
                             conteoMoscas++;
                             marcarPuntoWithNumber(ctx, centroX, centroY, '#FF0000', conteoMoscas);
                         }
