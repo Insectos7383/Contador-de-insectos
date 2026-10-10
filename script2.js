@@ -1,4 +1,4 @@
-// Función principal con umbrales equilibrados para detectar insectos sobre la trampa
+// Función principal de conteo preciso basada en contraste estricto sobre el fondo verde
 function procesarImagenConResumen(canvasId, imgElement) {
     const canvas = document.getElementById(canvasId);
     const ctx = canvas.getContext('2d');
@@ -19,8 +19,9 @@ function procesarImagenConResumen(canvasId, imgElement) {
     const height = canvas.height;
     const visited = new Uint8Array(width * height);
 
-    for (let y = 0; y < height; y += 2) {
-        for (let x = 0; x < width; x += 2) {
+    // Color promedio de referencia del papel amarillo/verde de la trampa
+    for (let y = 5; y < height - 5; y += 2) {
+        for (let x = 5; x < width - 5; x += 2) {
             const idx = (y * width + x);
             if (visited[idx]) continue;
 
@@ -29,18 +30,25 @@ function procesarImagenConResumen(canvasId, imgElement) {
             const g = pixels[pIdx + 1];
             const b = pixels[pIdx + 2];
 
-            // Umbrales directos de insectos (claros y oscuros)
-            const esClaro = (r > 150 && g > 150 && b > 130);
-            const esOscuro = (r < 80 && g < 80 && b < 80);
+            // Detectar si es un insecto oscuro (mucho más oscuro que el verde de la trampa)
+            const esOscuro = (r < 70 && g < 70 && b < 70 && (g - r) < 20);
+            // Detectar si es un insecto o ala clara (blanco/gris claro destacado)
+            const esClaro = (r > 170 && g > 170 && b > 150 && Math.abs(r - g) < 20);
 
             if (esClaro || esOscuro) {
                 let areaSize = 0;
+                let minX = x, maxX = x, minY = y, maxY = y;
                 let queue = [[x, y]];
                 visited[idx] = 1;
 
                 while (queue.length > 0) {
                     const [currX, currY] = queue.pop();
                     areaSize++;
+
+                    if (currX < minX) minX = currX;
+                    if (currX > maxX) maxX = currX;
+                    if (currY < minY) minY = currY;
+                    if (currY > maxY) maxY = currY;
 
                     const vecinos = [
                         [currX + 2, currY], [currX - 2, currY],
@@ -56,8 +64,8 @@ function procesarImagenConResumen(canvasId, imgElement) {
                                 const vg = pixels[vpIdx + 1];
                                 const vb = pixels[vpIdx + 2];
 
-                                const matchClaro = esClaro && (vr > 140 && vg > 140 && vb > 120);
-                                const matchOscuro = esOscuro && (vr < 90 && vg < 90 && vb < 90);
+                                const matchClaro = esClaro && (vr > 150 && vg > 150 && vb > 130);
+                                const matchOscuro = esOscuro && (vr < 80 && vg < 80 && vb < 80);
 
                                 if (matchClaro || matchOscuro) {
                                     visited[vIdx] = 1;
@@ -68,18 +76,28 @@ function procesarImagenConResumen(canvasId, imgElement) {
                     }
                 }
 
-                if (esClaro) {
-                    if (areaSize >= 10 && areaSize < 50) {
-                        conteoFragmentosClaros++;
-                        marcarPunto(ctx, x, y, '#FFFF00', conteoFragmentosClaros);
-                    } else if (areaSize >= 50) {
-                        conteoPolillasBlancas++;
-                        marcarPunto(ctx, x, y, '#00FFFF', conteoPolillasBlancas);
-                    }
-                } else if (esOscuro) {
-                    if (areaSize >= 15 && areaSize < 200) {
-                        conteoMoscas++;
-                        marcarPunto(ctx, x, y, '#FF0000', conteoMoscas);
+                // Descartar formas que sean líneas alargadas (como las letras del letrero)
+                const anchoObjeto = maxX - minX;
+                const altoObjeto = maxY - minY;
+                const esUnaLinea = (anchoObjeto > 4 * altoObjeto || altoObjeto > 4 * anchoObjeto) && areaSize > 40;
+
+                if (!esUnaLinea) {
+                    const centroX = Math.floor((minX + maxX) / 2);
+                    const centroY = Math.floor((minY + maxY) / 2);
+
+                    if (esClaro) {
+                        if (areaSize >= 12 && areaSize < 70) {
+                            conteoFragmentosClaros++;
+                            marcarPunto(ctx, centroX, centroY, '#FFFF00');
+                        } else if (areaSize >= 70 && areaSize < 600) {
+                            conteoPolillasBlancas++;
+                            marcarPunto(ctx, centroX, centroY, '#00FFFF');
+                        }
+                    } else if (esOscuro) {
+                        if (areaSize >= 15 && areaSize < 350) {
+                            conteoMoscas++;
+                            marcarPunto(ctx, centroX, centroY, '#FF0000');
+                        }
                     }
                 }
             }
@@ -95,7 +113,7 @@ function procesarImagenConResumen(canvasId, imgElement) {
     });
 }
 
-function marcarPunto(ctx, x, y, color, numero) {
+function marcarPunto(ctx, x, y, color) {
     ctx.beginPath();
     ctx.arc(x, y, 5, 0, 2 * Math.PI);
     ctx.fillStyle = color;
