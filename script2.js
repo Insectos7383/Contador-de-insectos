@@ -1,16 +1,13 @@
-// Función principal para procesamiento meticuloso de la imagen cargada
+// Función principal que limita el análisis exclusivamente al papel amarillo de la trampa
 function procesarImagenConResumen(canvasId, imgElement) {
     const canvas = document.getElementById(canvasId);
     const ctx = canvas.getContext('2d');
     
-    // Ajustar el canvas al tamaño original de la imagen
     canvas.width = imgElement.naturalWidth || imgElement.width;
     canvas.height = imgElement.naturalHeight || imgElement.height;
     
-    // Dibujar la imagen en el canvas
     ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
     
-    // Obtener los datos de los píxeles (RGBA)
     const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const pixels = imgData.data;
     
@@ -18,14 +15,13 @@ function procesarImagenConResumen(canvasId, imgElement) {
     let conteoPolillasBlancas = 0;
     let conteoFragmentosClaros = 0;
 
-    // Crear matriz de visitados para agrupamiento
     const width = canvas.width;
     const height = canvas.height;
     const visited = new Uint8Array(width * height);
 
-    // Umbrales de detección
-    for (let y = 0; y < height; y += 2) {
-        for (let x = 0; x < width; x += 2) {
+    // Recorremos la imagen buscando insectos
+    for (let y = 0; y < height; y += 3) {
+        for (let x = 0; x < width; x += 3) {
             const idx = (y * width + x);
             if (visited[idx]) continue;
 
@@ -34,8 +30,18 @@ function procesarImagenConResumen(canvasId, imgElement) {
             const g = pixels[pIdx + 1];
             const b = pixels[pIdx + 2];
 
-            const esClaro = (r > 160 && g > 160 && b > 140);
-            const esOscuro = (r < 75 && g < 75 && b < 75);
+            // FILTRO CLAVE: Verificamos si este píxel está dentro del papel amarillo
+            // El papel amarillo se caracteriza por tener mucho rojo y verde, y menor cantidad de azul
+            const esPapelAmarillo = (r > 120 && g > 120 && b < 100);
+
+            // Si estamos fuera del papel amarillo (por ejemplo, en la madera o fondo gris), ignoramos
+            if (!esPapelAmarillo) {
+                continue;
+            }
+
+            // Identificar si es un insecto claro (polillas/alas) u oscuro (moscas) sobre el fondo amarillo
+            const esClaro = (r > 180 && g > 180 && b > 150); 
+            const esOscuro = (r < 60 && g < 60 && b < 60);   
 
             if (esClaro || esOscuro) {
                 let areaSize = 0;
@@ -47,8 +53,8 @@ function procesarImagenConResumen(canvasId, imgElement) {
                     areaSize++;
 
                     const vecinos = [
-                        [currX + 2, currY], [currX - 2, currY],
-                        [currX, currY + 2], [currX, currY - 2]
+                        [currX + 3, currY], [currX - 3, currY],
+                        [currX, currY + 3], [currX, currY - 3]
                     ];
 
                     for (let [vx, vy] of vecinos) {
@@ -60,8 +66,12 @@ function procesarImagenConResumen(canvasId, imgElement) {
                                 const vg = pixels[vpIdx + 1];
                                 const vb = pixels[vpIdx + 2];
 
-                                const matchClaro = esClaro && (vr > 150 && vg > 150 && vb > 130);
-                                const matchOscuro = esOscuro && (vr < 85 && vg < 85 && vb < 85);
+                                // Asegurar que la expansión tampoco salga del área amarilla
+                                const vecinoEsAmarillo = (vr > 120 && vg > 120 && vb < 100);
+                                if (!vecinoEsAmarillo) continue;
+
+                                const matchClaro = esClaro && (vr > 170 && vg > 170 && vb > 140);
+                                const matchOscuro = esOscuro && (vr < 70 && vg < 70 && vb < 70);
 
                                 if (matchClaro || matchOscuro) {
                                     visited[vIdx] = 1;
@@ -73,15 +83,15 @@ function procesarImagenConResumen(canvasId, imgElement) {
                 }
 
                 if (esClaro) {
-                    if (areaSize >= 8 && areaSize < 45) {
+                    if (areaSize >= 15 && areaSize < 60) {
                         conteoFragmentosClaros++;
-                        marcarPunto(ctx, x, y, '#FFFF00', conteoFragmentosClaros + conteoPolillasBlancas);
-                    } else if (areaSize >= 45) {
+                        marcarPunto(ctx, x, y, '#FFFF00', conteoFragmentosClaros);
+                    } else if (areaSize >= 60) {
                         conteoPolillasBlancas++;
                         marcarPunto(ctx, x, y, '#00FFFF', conteoPolillasBlancas);
                     }
                 } else if (esOscuro) {
-                    if (areaSize >= 12 && areaSize < 120) {
+                    if (areaSize >= 20 && areaSize < 250) {
                         conteoMoscas++;
                         marcarPunto(ctx, x, y, '#FF0000', conteoMoscas);
                     }
@@ -90,7 +100,6 @@ function procesarImagenConResumen(canvasId, imgElement) {
         }
     }
 
-    // Actualizar el Resumen Detallado en pantalla
     mostrarResumenDetallado({
         "🪰 Moscas y Cuerpos Oscuros": conteoMoscas,
         "🦋 Polillas y Mariposas Blancas": conteoPolillasBlancas,
@@ -102,10 +111,10 @@ function procesarImagenConResumen(canvasId, imgElement) {
 
 function marcarPunto(ctx, x, y, color, numero) {
     ctx.beginPath();
-    ctx.arc(x, y, 6, 0, 2 * Math.PI);
+    ctx.arc(x, y, 5, 0, 2 * Math.PI);
     ctx.fillStyle = color;
     ctx.fill();
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1;
     ctx.strokeStyle = '#000000';
     ctx.stroke();
 }
