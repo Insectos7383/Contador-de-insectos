@@ -1,4 +1,4 @@
-// Función principal de conteo preciso basada en contraste estricto sobre el fondo verde
+// Función principal con numeración progresiva y filtro ajustado para moscas
 function procesarImagenConResumen(canvasId, imgElement) {
     const canvas = document.getElementById(canvasId);
     const ctx = canvas.getContext('2d');
@@ -19,7 +19,6 @@ function procesarImagenConResumen(canvasId, imgElement) {
     const height = canvas.height;
     const visited = new Uint8Array(width * height);
 
-    // Color promedio de referencia del papel amarillo/verde de la trampa
     for (let y = 5; y < height - 5; y += 2) {
         for (let x = 5; x < width - 5; x += 2) {
             const idx = (y * width + x);
@@ -30,9 +29,9 @@ function procesarImagenConResumen(canvasId, imgElement) {
             const g = pixels[pIdx + 1];
             const b = pixels[pIdx + 2];
 
-            // Detectar si es un insecto oscuro (mucho más oscuro que el verde de la trampa)
+            // Detectar cuerpos oscuros (moscas)
             const esOscuro = (r < 70 && g < 70 && b < 70 && (g - r) < 20);
-            // Detectar si es un insecto o ala clara (blanco/gris claro destacado)
+            // Detectar elementos claros (polillas/alas)
             const esClaro = (r > 170 && g > 170 && b > 150 && Math.abs(r - g) < 20);
 
             if (esClaro || esOscuro) {
@@ -76,7 +75,6 @@ function procesarImagenConResumen(canvasId, imgElement) {
                     }
                 }
 
-                // Descartar formas que sean líneas alargadas (como las letras del letrero)
                 const anchoObjeto = maxX - minX;
                 const altoObjeto = maxY - minY;
                 const esUnaLinea = (anchoObjeto > 4 * altoObjeto || altoObjeto > 4 * anchoObjeto) && areaSize > 40;
@@ -86,17 +84,18 @@ function procesarImagenConResumen(canvasId, imgElement) {
                     const centroY = Math.floor((minY + maxY) / 2);
 
                     if (esClaro) {
-                        if (areaSize >= 12 && areaSize < 70) {
+                        if (areaSize >= 15 && areaSize < 70) {
                             conteoFragmentosClaros++;
-                            marcarPunto(ctx, centroX, centroY, '#FFFF00');
+                            marcarPuntoConNumero(ctx, centroX, centroY, '#FFFF00', '');
                         } else if (areaSize >= 70 && areaSize < 600) {
                             conteoPolillasBlancas++;
-                            marcarPunto(ctx, centroX, centroY, '#00FFFF');
+                            marcarPuntoConNumero(ctx, centroX, centroY, '#00FFFF', '');
                         }
                     } else if (esOscuro) {
-                        if (areaSize >= 15 && areaSize < 350) {
+                        // Tamaño mínimo mayor para agrupar cada mosca entera y apuntar al objetivo de 129
+                        if (areaSize >= 70 && areaSize < 500) {
                             conteoMoscas++;
-                            marcarPunto(ctx, centroX, centroY, '#FF0000');
+                            marcarPuntoWithNumber(ctx, centroX, centroY, '#FF0000', conteoMoscas);
                         }
                     }
                 }
@@ -113,9 +112,25 @@ function procesarImagenConResumen(canvasId, imgElement) {
     });
 }
 
-function marcarPunto(ctx, x, y, color) {
+function marcarPuntoWithNumber(ctx, x, y, color, numero) {
     ctx.beginPath();
-    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    ctx.arc(x, y, 4, 0, 2 * Math.PI);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#000000';
+    ctx.stroke();
+
+    if (numero) {
+        ctx.font = 'bold 10px Arial';
+        ctx.fillStyle = '#000000';
+        ctx.fillText(numero, x + 6, y + 4);
+    }
+}
+
+function marcarPuntoConNumero(ctx, x, y, color, numero) {
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, 2 * Math.PI);
     ctx.fillStyle = color;
     ctx.fill();
     ctx.lineWidth = 1;
