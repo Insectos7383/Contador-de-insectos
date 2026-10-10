@@ -1,4 +1,4 @@
-// Función principal con umbrales estrictos para apuntar al objetivo de 129 moscas
+// Función principal con exclusión de la zona del letrero y filtros estrictos
 function procesarImagenConResumen(canvasId, imgElement) {
     const canvas = document.getElementById(canvasId);
     const ctx = canvas.getContext('2d');
@@ -19,8 +19,20 @@ function procesarImagenConResumen(canvasId, imgElement) {
     const height = canvas.height;
     const visited = new Uint8Array(width * height);
 
+    // Definir la zona vertical donde está el letrero negro (aproximadamente entre el 30% y el 60% de la altura de la imagen)
+    const letreroTop = height * 0.30;
+    const letreroBottom = height * 0.60;
+    const letreroLeft = width * 0.30;
+    const letreroRight = width * 0.75;
+
     for (let y = 5; y < height - 5; y += 2) {
         for (let x = 5; x < width - 5; x += 2) {
+            
+            // Si el punto cae dentro de la caja del letrero, nos saltamos el análisis para evitar contar letras
+            if (y > letreroTop && y < letreroBottom && x > letreroLeft && x < letreroRight) {
+                continue;
+            }
+
             const idx = (y * width + x);
             if (visited[idx]) continue;
 
@@ -54,6 +66,11 @@ function procesarImagenConResumen(canvasId, imgElement) {
 
                     for (let [vx, vy] of vecinos) {
                         if (vx >= 0 && vx < width && vy >= 0 && vy < height) {
+                            // Evitar expansión dentro de la zona del letrero también
+                            if (vy > letreroTop && vy < letreroBottom && vx > letreroLeft && vx < letreroRight) {
+                                continue;
+                            }
+
                             const vIdx = (vy * width + vx);
                             if (!visited[vIdx]) {
                                 const vpIdx = vIdx * 4;
@@ -75,23 +92,26 @@ function procesarImagenConResumen(canvasId, imgElement) {
 
                 const anchoObjeto = maxX - minX;
                 const altoObjeto = maxY - minY;
-                const esUnaLinea = (anchoObjeto > 4 * altoObjeto || altoObjeto > 4 * anchoObjeto) && areaSize > 40;
+                const relacionAspecto = Math.max(anchoObjeto, altoObjeto) / (Math.min(anchoObjeto, altoObjeto) || 1);
+                
+                // Descartar formas alargadas o líneas de texto
+                const esUnaLinea = relacionAspecto > 3.0 && areaSize > 30;
 
                 if (!esUnaLinea) {
                     const centroX = Math.floor((minX + maxX) / 2);
                     const centroY = Math.floor((minY + maxY) / 2);
 
                     if (esClaro) {
-                        if (areaSize >= 15 && areaSize < 70) {
+                        if (areaSize >= 20 && areaSize < 80) {
                             conteoFragmentosClaros++;
                             marcarPuntoConNumero(ctx, centroX, centroY, '#FFFF00', '');
-                        } else if (areaSize >= 70 && areaSize < 600) {
+                        } else if (areaSize >= 80 && areaSize < 600) {
                             conteoPolillasBlancas++;
                             marcarPuntoConNumero(ctx, centroX, centroY, '#00FFFF', '');
                         }
                     } else if (esOscuro) {
-                        // Umbral de tamaño elevado para capturar insectos completos y reducir ruido
-                        if (areaSize >= 130 && areaSize < 600) {
+                        // Rango optimizado para cuerpos compactos de moscas
+                        if (areaSize >= 100 && areaSize < 600) {
                             conteoMoscas++;
                             marcarPuntoWithNumber(ctx, centroX, centroY, '#FF0000', conteoMoscas);
                         }
