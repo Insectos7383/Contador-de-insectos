@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contador de Insectos - Versión 2.0 Meticulosa</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div style="padding: 20px; font-family: Arial, sans-serif;">
+        <h1>Contador de Insectos Ver 2.0 🪲</h1>
+        <p>Sube tu foto de la trampa para realizar un conteo ultra meticuloso por categorías.</p>
+        
+        <!-- Input para cargar la imagen -->
+        <input type="file" id="subir-imagen" accept="image/*">
+        <br><br>
+        
+        <!-- Canvas donde se procesará y marcará la imagen -->
+        <canvas id="canvas-insectos" style="max-width: 100%; border: 1px solid #ccc;"></canvas>
+        
+        <!-- Aquí aparecerá el resumen detallado -->
+        <div id="resumen-conteo"></div>
+    </div>
+
+    <!-- Script para conectar la imagen cargada con el algoritmo -->
+    <script src="script2.js"></script>
+    <script>
+        document.getElementById('subir-imagen').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        procesarImagenConResumen('canvas-insectos', img);
+                    }
+                    img.src = event.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+</body>
+</html>
